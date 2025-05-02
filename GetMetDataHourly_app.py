@@ -25,20 +25,17 @@ start_date = col1.date_input("開始日", today)
 end_date = col2.date_input("終了日", today)
 
 # --- マップクリックで地点指定（ピン付き） ---
-st.subheader("地点の指定")
-if "lat" not in st.session_state:
-    st.session_state["lat"] = 36.0566
-    st.session_state["lon"] = 140.125
-
-m = folium.Map(location=[st.session_state["lat"], st.session_state["lon"]], zoom_start=6)
-folium.Marker(
-    location=[st.session_state["lat"], st.session_state["lon"]],
-    tooltip="選択地点",
-    icon=folium.Icon(color="red")
-).add_to(m)
-map_result = st_folium(m, height=400, returned_objects=["last_clicked"]) or {}
-st.caption("※ 終了日は9日先まで指定できます。")
-st.caption("※ マップをクリックすると、クリックした場所の緯度・経度が表示されます。")
+with st.container():
+    st.subheader("地点の指定")
+    m = folium.Map(location=[st.session_state["lat"], st.session_state["lon"]], zoom_start=6)
+    folium.Marker(
+        location=[st.session_state["lat"], st.session_state["lon"]],
+        tooltip="選択地点",
+        icon=folium.Icon(color="red")
+    ).add_to(m)
+    map_result = st_folium(m, height=400, returned_objects=["last_clicked"])
+    st.caption("※ 終了日は9日先まで指定できます。")
+    st.caption("※ マップをクリックすると、クリックした場所の緯度・経度が表示されます。")
 
 
 if map_result["last_clicked"] is not None:
