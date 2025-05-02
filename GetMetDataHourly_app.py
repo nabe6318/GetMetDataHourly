@@ -8,7 +8,7 @@ import AMD_Tools4 as amd
 import folium
 from streamlit_folium import st_folium
 
-st.title("時別気象データ取得アプリ・信大雑草研製作")
+st.title("時別気象データ取得アプリ")
 st.markdown("気温（TMP）、相対湿度（RH）、下向き長波放射量（DLR）の時別データを可視化します。")
 
 # --- 要素選択 ---
@@ -37,6 +37,9 @@ folium.Marker(
     icon=folium.Icon(color="red")
 ).add_to(m)
 map_result = st_folium(m, height=400, returned_objects=["last_clicked"])
+
+# 🔽 ここに説明文を追加
+st.caption("※ マップをクリックすると、クリックした場所の緯度・経度が表示されます。")
 
 if map_result["last_clicked"] is not None:
     st.session_state["lat"] = round(map_result["last_clicked"]["lat"], 4)
