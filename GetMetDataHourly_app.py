@@ -25,6 +25,9 @@ start_date = col1.date_input("開始日", today)
 end_date = col2.date_input("終了日", today)
 
 # --- マップクリックで地点指定（ピン付き） ---
+# 🔽 ここに説明文を追加
+st.caption("※ 終了日は9日先まで指定できます。")
+
 st.subheader("地点の指定")
 if "lat" not in st.session_state:
     st.session_state["lat"] = 36.0566
