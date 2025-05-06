@@ -5,26 +5,30 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as md
 from datetime import datetime
 import os
-import AMD_Tools4 as amd  # 気象データ取得ライブラリ
+import AMD_Tools4 as amd  # ご自身の環境で正しくインポートできるようにしてください
 
-# タイトルと説明
+# アプリタイトルと説明
 st.title("時別気象データ取得アプリ")
 st.markdown("気温（TMP）、相対湿度（RH）、下向き長波放射量（DLR）の時別データを可視化します。")
 
 # --- 気象要素の選択 ---
-element = st.selectbox("気象要素を選択してください", options=["TMP", "RH", "DLR"], format_func=lambda x: {
-    "TMP": "気温 (TMP)",
-    "RH": "相対湿度 (RH)",
-    "DLR": "下向き長波放射量 (DLR)"
-}[x])
+element = st.selectbox(
+    "気象要素を選択してください",
+    options=["TMP", "RH", "DLR"],
+    format_func=lambda x: {
+        "TMP": "気温 (TMP)",
+        "RH": "相対湿度 (RH)",
+        "DLR": "下向き長波放射量 (DLR)"
+    }[x]
+)
 
-# --- 日付入力 ---
+# --- 日付の選択 ---
 today = datetime.today().date()
 col1, col2 = st.columns(2)
 start_date = col1.date_input("開始日", today)
 end_date = col2.date_input("終了日", today)
 
-# --- 地点の履歴ファイルの読み込みまたは作成 ---
+# --- 地点履歴ファイルの設定と読み込み ---
 HISTORY_FILE = "location_history.csv"
 if os.path.exists(HISTORY_FILE):
     history_df = pd.read_csv(HISTORY_FILE)
@@ -33,7 +37,7 @@ else:
     history_df = pd.DataFrame(columns=["地点名", "緯度", "経度"])
     history_list = []
 
-# --- 地点指定 ---
+# --- 地点の選択・入力 ---
 st.subheader("地点の指定")
 use_history = st.checkbox("履歴から選択", value=True)
 
@@ -48,7 +52,6 @@ else:
     lon = st.number_input("経度", format="%.4f", value=138.1810)
 
     if st.button("この地点を履歴に保存"):
-        # 重複チェックして保存
         if place_name and not ((history_df["地点名"] == place_name) &
                                (history_df["緯度"] == lat) &
                                (history_df["経度"] == lon)).any():
@@ -59,18 +62,31 @@ else:
         else:
             st.info("この地点はすでに履歴にあります。")
 
-# 表示とセッション状態保存
-st.success(f"選択された地点: {place_name}（緯度 {lat}, 経度 {lon}）")
+# --- 履歴から削除する機能 ---
+st.markdown("---")
+st.subheader("履歴の削除")
+if not history_df.empty:
+    delete_place = st.selectbox("削除したい地点を選択", options=history_df["地点名"].tolist(), key="delete_select")
+    if st.button("この地点を履歴から削除"):
+        history_df = history_df[history_df["地点名"] != delete_place]
+        history_df.to_csv(HISTORY_FILE, index=False)
+        st.success(f"「{delete_place}」を履歴から削除しました。")
+        st.experimental_rerun()
+else:
+    st.info("削除可能な履歴がありません。")
+
+# --- セッションステートに保存して表示 ---
 st.session_state["lat"] = lat
 st.session_state["lon"] = lon
+st.success(f"選択された地点: {place_name}（緯度 {lat}, 経度 {lon}）")
 
-# --- データ取得範囲の設定 ---
+# --- 時間ドメインと緯度経度の範囲を設定 ---
 lalodomain = [lat, lat, lon, lon]
 start_str = str(start_date)
 end_str = str(end_date)
 timedomain = [f"{start_str}T01", f"{end_str}T24"]
 
-# --- データ取得・表示 ---
+# --- データ取得処理 ---
 if st.button("気象データを取得"):
     with st.spinner("時別データを取得中..."):
         try:
