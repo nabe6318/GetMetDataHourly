@@ -8,47 +8,45 @@ import AMD_Tools4 as amd
 import folium
 from streamlit_folium import st_folium
 
+st.set_page_config(layout="wide")
 st.title("時別気象データ取得アプリ")
 st.markdown("気温（TMP）、相対湿度（RH）、下向き長波放射量（DLR）の時別データを可視化します。")
 
-# --- 要素選択 ---
-element = st.selectbox("気象要素を選択してください", options=["TMP", "RH", "DLR"], format_func=lambda x: {
-    "TMP": "気温 (TMP)",
-    "RH": "相対湿度 (RH)",
-    "DLR": "下向き長波放射量 (DLR)"
-}[x])
+# --- 観測地点リスト ---
+locations = {
+    "KOA山1（洗馬）": (36.10615778, 137.8787694),
+    "KOA山2（洗馬）": (36.10599167, 137.8787083),
+    "KOA山3（洗馬）": (36.10616111, 137.8790889),
+    "KOA山4（洗馬）": (36.10617778, 137.8789667),
+    "KOA5WW（箕輪町）": (35.89755278, 137.9560553),
+    "KOA6（手良）": (35.87172194, 138.0164028),
+    "KOA7（手良）": (35.87127222, 138.0160833)
+}
 
-# --- 今日の日付をデフォルトに設定 ---
+# --- 地点選択 ---
+location_name = st.selectbox("観測地点を選択してください", list(locations.keys()))
+lat, lon = locations[location_name]
+st.session_state["lat"] = lat
+st.session_state["lon"] = lon
+
+# --- 気象要素の選択 ---
+element = st.selectbox(
+    "気象要素を選択してください",
+    options=["TMP", "RH", "DLR"],
+    format_func=lambda x: {
+        "TMP": "気温 (TMP)",
+        "RH": "相対湿度 (RH)",
+        "DLR": "下向き長波放射量 (DLR)"
+    }[x]
+)
+
+# --- 日付選択 ---
 today = datetime.today().date()
 col1, col2 = st.columns(2)
 start_date = col1.date_input("開始日", today)
 end_date = col2.date_input("終了日", today)
 
-# --- マップクリックで地点指定（ピン付き） ---
-with st.container():
-    st.subheader("地点の指定")
-    m = folium.Map(location=[st.session_state["lat"], st.session_state["lon"]], zoom_start=6)
-    folium.Marker(
-        location=[st.session_state["lat"], st.session_state["lon"]],
-        tooltip="選択地点",
-        icon=folium.Icon(color="red")
-    ).add_to(m)
-    map_result = st_folium(m, height=400, returned_objects=["last_clicked"])
-    st.caption("※ 終了日は9日先まで指定できます。")
-    st.caption("※ マップをクリックすると、クリックした場所の緯度・経度が表示されます。")
-
-
-if map_result["last_clicked"] is not None:
-    st.session_state["lat"] = round(map_result["last_clicked"]["lat"], 4)
-    st.session_state["lon"] = round(map_result["last_clicked"]["lng"], 4)
-
-lat = st.session_state["lat"]
-lon = st.session_state["lon"]
-st.success(f"選択された地点: 緯度 {lat}, 経度 {lon}")
-
-lalodomain = [lat, lat, lon, lon]
-
-# --- 時別形式のタイムドメインに変換 ---
+# --- 時別形式のタイムドメイン作成 ---
 start_str = str(start_date)
 end_str = str(end_date)
 timedomain = [f"{start_str}T01", f"{end_str}T24"]
@@ -57,24 +55,26 @@ timedomain = [f"{start_str}T01", f"{end_str}T24"]
 if st.button("気象データを取得"):
     with st.spinner("時別データを取得中..."):
         try:
-            # 時別気象データの取得
-            obs, tim, lat_arr, lon_arr, name, unit = amd.GetMetDataHourly(element, timedomain, lalodomain, namuni=True)
+            lalodomain = [[lat, lat], [lon, lon]]  # 単一点指定
+            obs, tim, lat_arr, lon_arr, name, unit = amd.GetMetDataHourly(
+                element, timedomain, lalodomain, namuni=True
+            )
 
-            # 次元削減
             obs_1d = obs[:, 0, 0]
             tim = pd.to_datetime(tim)
 
-            # --- 表形式で出力 ---
+            # 表示用データフレーム
             df = pd.DataFrame({
                 "日時": tim,
                 "値": obs_1d,
                 "緯度": lat,
                 "経度": lon
             })
+
             st.subheader("データテーブル")
             st.dataframe(df)
 
-            # --- 折れ線グラフ ---
+            # 折れ線グラフ
             st.subheader("折れ線グラフ")
             fig, ax = plt.subplots(figsize=(12, 4))
             ax.plot(tim, obs_1d, 'b-', label=name)
@@ -88,4 +88,3 @@ if st.button("気象データを取得"):
 
         except Exception as e:
             st.error(f"データ取得エラー: {e}")
-
