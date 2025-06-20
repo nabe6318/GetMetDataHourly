@@ -74,4 +74,20 @@ if st.button("気象データを取得"):
                 "経度": lon
             })
 
-            st.subhe
+            st.subheader("データテーブル")
+            st.dataframe(df)
+
+            # 折れ線グラフ
+            st.subheader("折れ線グラフ")
+            fig, ax = plt.subplots(figsize=(12, 4))
+            ax.plot(tim, obs_1d, 'b-', label=name)
+            ax.set_xlabel("日時")
+            ax.set_ylabel(f"{name} [{unit}]")
+            ax.set_title(f"{name}（時別）: N{lat}, E{lon}")
+            ax.xaxis.set_major_formatter(md.DateFormatter('%m/%d %Hh'))
+            plt.xticks(rotation=45)
+            plt.tight_layout()
+            st.pyplot(fig)
+
+        except Exception as e:
+            st.error(f"データ取得エラー: {e}")
