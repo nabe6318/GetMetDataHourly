@@ -8,6 +8,7 @@ import AMD_Tools4 as amd
 import folium
 from streamlit_folium import st_folium
 
+# --- 画面設定 ---
 st.set_page_config(layout="wide")
 st.title("時別気象データ取得アプリ")
 st.markdown("気温（TMP）、相対湿度（RH）、下向き長波放射量（DLR）の時別データを可視化します。")
@@ -55,7 +56,9 @@ timedomain = [f"{start_str}T01", f"{end_str}T24"]
 if st.button("気象データを取得"):
     with st.spinner("時別データを取得中..."):
         try:
-            lalodomain = [[lat, lat], [lon, lon]]  # 単一点指定
+            # LatLonDomain に対応する形式で範囲指定
+            lalodomain = [lat, lat, lon, lon]  # [latmin, latmax, lonmin, lonmax]
+
             obs, tim, lat_arr, lon_arr, name, unit = amd.GetMetDataHourly(
                 element, timedomain, lalodomain, namuni=True
             )
@@ -71,20 +74,4 @@ if st.button("気象データを取得"):
                 "経度": lon
             })
 
-            st.subheader("データテーブル")
-            st.dataframe(df)
-
-            # 折れ線グラフ
-            st.subheader("折れ線グラフ")
-            fig, ax = plt.subplots(figsize=(12, 4))
-            ax.plot(tim, obs_1d, 'b-', label=name)
-            ax.set_xlabel("日時")
-            ax.set_ylabel(f"{name} [{unit}]")
-            ax.set_title(f"{name}（時別）: N{lat}, E{lon}")
-            ax.xaxis.set_major_formatter(md.DateFormatter('%m/%d %Hh'))
-            plt.xticks(rotation=45)
-            plt.tight_layout()
-            st.pyplot(fig)
-
-        except Exception as e:
-            st.error(f"データ取得エラー: {e}")
+            st.subhe
